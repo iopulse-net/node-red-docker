@@ -18,7 +18,7 @@ RUN set -ex && \
         nano \
         git \
         openssl \
-        openssh-client && \
+        openssh-client krb5-dev && \
     mkdir -p /usr/src/node-red /data && \
     deluser --remove-home node && \
     adduser -h /usr/src/node-red -D -H node-red -u 1000 && \
@@ -31,16 +31,17 @@ RUN set -ex && \
 WORKDIR /usr/src/node-red
 
 # package.json contains Node-RED NPM module and node dependencies
-COPY package.json .
+COPY node-red/ /usr/src/node-red/
 
 #### Stage BUILD #######################################################################################################
 FROM base AS build
-
+ENV NODE_PATH=/usr/src/node-red/node_modules:/data/node_modules
 # Install Build tools
-RUN apk add --no-cache --virtual buildtools build-base linux-headers udev python && \
-    npm install --unsafe-perm --no-update-notifier --no-fund --only=production && \
-    /tmp/remove_native_gpio.sh && \
-    cp -R node_modules prod_node_modules
+RUN apk add --no-cache --virtual buildtools build-base linux-headers udev python zeromq-dev
+RUN npm install cmake-js 
+RUN npm install .
+RUN /tmp/remove_native_gpio.sh
+RUN cp -R node_modules prod_node_modules
 
 #### Stage RELEASE #####################################################################################################
 FROM base AS RELEASE
